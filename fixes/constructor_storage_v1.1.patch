@@ -1,0 +1,23 @@
+--- a/contracts/trace_sentry.py
++++ b/contracts/trace_sentry.py
+@@ -130,14 +130,12 @@
+         self.admin = gl.message.sender_address
+         self.nominated_admin = Address('0x0000000000000000000000000000000000000000')
+         self.paused = False
+-        self.participants = TreeMap()
+-        self.lots = TreeMap()
+-        self.children = TreeMap()
+-        self.cases = TreeMap()
+-        self.challenges = TreeMap()
+-        self.lot_alerts = TreeMap()
+-        self.case_seen = TreeMap()
+-        self.audit = DynArray[str]()
++        # Persistent TreeMap / DynArray fields are already zero-initialized by
++        # GenVM from their *parameterized* class annotations. Never assign
++        # TreeMap() here: an unparameterized storage object's descriptor does
++        # not match TreeMap[K, V] and deployment aborts with AssertionError.
++        # This applies to participants, lots, children, cases, challenges,
++        # lot_alerts, case_seen, and audit (DynArray[str]).
+         self.audit_root = 'GENESIS'
+         self.lot_count = u32(0)
+         self.case_count = u32(0)

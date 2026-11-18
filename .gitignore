@@ -1,0 +1,12 @@
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+*.pyc
+.env
+.env.*
+!*.example
+node_modules/
+dist/
+verification/DEPLOYMENT_RESULT.json

@@ -1,0 +1,120 @@
+{
+  "schema_version": "1.0.0",
+  "project": "TraceSentry",
+  "description": "GenLayer AI-adjudicated supply-chain incident propagation",
+  "runtime": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6",
+  "entrypoint": "contracts/trace_sentry.py",
+  "contract_class": "TraceSentry",
+  "genlayer_components": [
+    "TreeMap",
+    "DynArray",
+    "gl.vm.run_nondet_unsafe",
+    "gl.nondet.web.render",
+    "gl.nondet.exec_prompt"
+  ],
+  "writes": {
+    "enroll": [
+      "organization:str",
+      "descriptor:str"
+    ],
+    "configure_participant": [
+      "account:str",
+      "supplier:bool",
+      "reporter:bool",
+      "approved:bool"
+    ],
+    "propose_admin": [
+      "new_admin:str"
+    ],
+    "accept_admin": [],
+    "set_paused": [
+      "value:bool"
+    ],
+    "register_lot": [
+      "lot_id:str",
+      "label:str",
+      "product_code:str",
+      "parents_json:str",
+      "manifest_hash:str"
+    ],
+    "submit_case": [
+      "lot_id:str",
+      "category:str",
+      "allegation:str",
+      "evidence_url:str",
+      "evidence_sha256:str"
+    ],
+    "assess_case": [
+      "case_id:str"
+    ],
+    "process_case": [
+      "case_id:str",
+      "batch:u32"
+    ],
+    "challenge_case": [
+      "case_id:str",
+      "rebuttal_url:str",
+      "rebuttal_sha256:str",
+      "argument:str"
+    ],
+    "resolve_challenge": [
+      "challenge_id:str"
+    ],
+    "emergency_retract": [
+      "case_id:str",
+      "reason:str"
+    ]
+  },
+  "views": {
+    "get_lot": [
+      "lot_id:str"
+    ],
+    "get_children": [
+      "lot_id:str"
+    ],
+    "get_lot_risk": [
+      "lot_id:str"
+    ],
+    "get_case": [
+      "case_id:str"
+    ],
+    "get_challenge": [
+      "challenge_id:str"
+    ],
+    "get_participant": [
+      "account:str"
+    ],
+    "get_stats": [],
+    "get_audit": [
+      "start:u32",
+      "limit:u32"
+    ]
+  },
+  "limits": {
+    "lots": 512,
+    "cases": 128,
+    "challenges": 256,
+    "parents_per_lot": 6,
+    "children_per_lot": 24,
+    "cases_per_origin_lot": 12,
+    "propagation_batch": 32,
+    "source_excerpt_characters": 12000,
+    "audit_view_page": 32
+  },
+  "consensus": {
+    "case_assessment": "independent source fetch + independent LLM; decision & recall boundary exact; severity difference <= 1 within boundary; grounded quote",
+    "appeal": "independent fetch both documents + independent LLM; action and severity exact; grounded quote"
+  },
+  "deployed": true,
+  "security_audited": false,
+  "deployment": {
+    "network": "studionet",
+    "chain_id": 61999,
+    "contract_address": "0x1C4C17d9A11531D7c27a3B65B24732A61E789D38",
+    "transaction_hash": "0x79b3144c72cfe26be5910307c31648ded8a365aba7e3b7ea15573c221a6ae003",
+    "genvm_execution": "SUCCESS",
+    "consensus": "ACCEPTED",
+    "finalization": "not_independently_confirmed",
+    "included_source_sha256": "ecb6407eed8ac0f2a24e08f49d0e52d399e830d479a94a5f1e1d6220e7a2d2ea"
+  }
+}
