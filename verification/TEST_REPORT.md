@@ -1,61 +1,25 @@
-# TraceSentry v1.1 — final package test report
+# TraceSentry v1.2 verification report
 
-**18 November 2026** | Contract source `contracts/trace_sentry.py` | Python 3.13.5 | pytest 9.0.2
+**Run date** 21 November 2026.  
+**Base GitHub commit** `662713af1ccf7c14998d6daaa1a6af0865b63b4f`.  
+**Source** `contracts/trace_sentry.py` with SHA-256 `eec9cdc4461cf6ac4c6e0c3b1a01e98da646d5312f0143e0051cb64cff8b0f5a`.
 
-## Measured results in the build environment
+| Check | Result |
+| --- | --- |
+| Host tests with Python 3.12.14 and pytest 9.0.2 | **121 passed** |
+| Python compilation and Bash script syntax | **Passed** |
+| GenVM AST lint with genvm-linter 0.11.0 | **Passed** |
+| Pinned GenLayer SDK schema validation | **Passed** |
+| Packaged schema compared with SDK output | **Passed** for 12 writes, 8 views and the zero-argument constructor |
+| v1.2 live StudioNet execution and consensus | Pending deployment |
 
-```text
-$ python3 -m py_compile contracts/trace_sentry.py
-PASS
+## Consensus regressions
 
-$ bash -n scripts/deploy_studionet.sh scripts/run_checks.sh scripts/smoke_deployed_readonly.sh
-PASS
+- The case tests cover all 16 pairs of valid severity levels. All 12 disagreements reject, including 2 vs 3 and 3 vs 2. The tests verify the pending case, the job counters, the audit root, and the lot risk after rejection.
+- The four matching pairs produce the corresponding `CLEAR`, `WATCH`, `RECALL`, or `CRITICAL` result on the origin and downstream lots. The independent explanations may differ.
+- Schema and source regressions exercise malformed payloads and a revised source page. The validator checks the proposed quote against the same snapshot it uses for independent assessment.
+- Appeal tests verify exact downgrade severity, the use of the recorded argument, and both evidence fetches on each node.
 
-$ python3 -m pytest -q tests/
-........................................................................ [ 73%]
-..........................                                               [100%]
-98 passed in 0.28s
-```
+The host suite mocks GenLayer storage, the web, LLM calls and consensus. The SDK check loads the declared runner and validates the contract schema. It reports an informational note about a newer runner. StudioNet tests cover real transaction execution, validator votes, and finality. [Live test plan](LIVE_TEST_PLAN.md)
 
-**98 host-side tests passed, 0 failures.** Exactly **47** baseline v1.1 tests plus **51** additional parametrized/invariant/security/provenance cases.
-
-The tests import the **real deployable contract file** with stubbed `genlayer` primitives, deterministic storage, synthetic accounts, a mock LLM, mock HTTPS pages, and a mock consensus callback. They cover code paths and business logic. They do **not** perform a GenVM execution.
-
-### Additional scenarios added in final package
-
-- Five seeded random 42-lot DAGs: independent Python reference reachability vs actual contract BFS, followed by full rollback/retraction.
-- Batch sizes 1, 2, 3, 4, 7, 31, 32 and merge-node deduplication.
-- Overlapping cases from **different** origin lots with overlapping downstream descendants.
-- Conservative retraction with partially processed queues and risk state checks.
-- Pending cases seeing descendants registered before assessment; dismissed case allows DAG updates.
-- Paused processing, resumed processing, and administrator-initiated retraction while paused.
-- Appeals: successful UPHOLD, invalid downgrade, absent source anchor, evidence too short, unauthorized access.
-- AI decision malformed JSON schemas, severity/decision inconsistency, bool-as-int, invalid anchors, source-length check, leader/validator tolerance.
-- Governance and public URL input validation, audit pagination and SHA-256 chain re-verification over 50+ records.
-- Pinning to the exact v1.1 contract SHA-256 and deployment metadata consistency.
-
-## Already observed on GenLayer Studio by user
-
-| Gate | Evidence | Status |
-|---|---|---|
-| Studio v1.0 constructor | `0xf83d3fab...850c36` GenVM `Contract Error` | FAILED, historical |
-| Studio v1.1 constructor | `0x79b3144c...a6ae003` accepted with GenVM `SUCCESS` | **SUCCESS / ACCEPTED** (user screenshots) |
-| Studio v1.1 finality | Finalized badge not pictured | **NOT VERIFIED** |
-| Studio v1.1 `get_stats()` | No real call output shared | **NOT RUN HERE** |
-| Studio v1.1 participant/lot methods | No method receipt shared | **NOT RUN HERE** |
-| Studio v1.1 LLM/validator and appeal methods | No method receipt shared | **NOT RUN HERE** |
-| Official `genlayer-test` direct mode | No SDK installed | NOT RUN |
-| `genvm-lint` | Tool unavailable | NOT RUN |
-| Real Studio / GLSim integration | No network and CLI access | NOT RUN |
-| Independent security audit | Not commissioned | NOT DONE |
-
-**State of release:** deployable source is byte-for-byte unchanged from v1.1 hotfix ZIP; SHA-256 `ecb6407eed8ac0f2a24e08f49d0e52d399e830d479a94a5f1e1d6220e7a2d2ea`. The build environment **cannot** independently establish that the user's Studio upload exactly matches these bytes, as it could not download the on-chain code.
-
-## Test next without signing
-
-```bash
-npm install -g genlayer
-./scripts/smoke_deployed_readonly.sh
-```
-
-Full optional wallet/write/consensus verification is specified in `verification/LIVE_TEST_PLAN.md`. Only claim functional testnet completion once the real transaction hashes and execution traces have been captured.
+The restored v1.1 Studio record documents the earlier constructor transaction. [Historical v1.1 record](DEPLOYMENT_RESULT.json) · [Machine-readable results](TEST_REPORT.json)

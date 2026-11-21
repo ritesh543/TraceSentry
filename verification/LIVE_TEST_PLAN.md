@@ -1,29 +1,17 @@
-# TraceSentry — Remaining live contract test plan
+# TraceSentry v1.2 live contract test plan
 
-**Existing contract:** `0x1C4C17d9A11531D7c27a3B65B24732A61E789D38`  
-**Network:** GenLayer hosted Studionet, chain ID 61999  
-**Deployment tx:** `0x79b3144c72cfe26be5910307c31648ded8a365aba7e3b7ea15573c221a6ae003`
+Use the address and transaction hash from deploying the v1.2 source on stable StudioNet (chain ID 61999). Record the receipt in [the release metadata](../deployment_info.json).
 
-## Evidence already collected
-
-The user's 18 November 2026 Studio Explorer screenshots show:
-
-- Transaction **ACCEPTED**, type Deploy, with 5 initial validators.
-- Consensus result **Accepted**.
-- GenVM Execution **SUCCESS**, result code **Return**, return value `null`, stderr empty.
-
-This is direct evidence of successful **constructor execution**, not evidence of full method coverage, transaction finality, or correctness of all later workflows. The contract file in this repository matches the previous fixed v1.1 ZIP by SHA-256; the on-chain source has **not** been independently retrieved and compared.
+The 18 November 2026 screenshots record a v1.1 constructor transaction. [Historical v1.1 deployment record](DEPLOYMENT_RESULT.json)
 
 ## Checks executable without signing
 
-Requires working internet and GenLayer CLI. `./scripts/smoke_deployed_readonly.sh` attempts the following against the **existing** address, with no writes:
+With the GenLayer CLI installed, set `ADDR` to your v1.2 deployment address and run `./scripts/smoke_deployed_readonly.sh "$ADDR"`. Review the two returned views and the deployment receipt.
 
-1. `genlayer call <address> get_stats` — verify a JSON object, expected `admin` equals deployer unless governance has changed, `audit_entries >= 1`, counters non-negative.
-2. `genlayer call <address> get_audit --args 0 1` — verify first event is `DEPLOY` and actor / data are correct.
-3. On Explorer, inspect this exact tx for **FINALIZED** (if it has progressed) and GenVM `SUCCESS`. Do not equate `ACCEPTED` with `FINALIZED`.
-4. Optionally, use `genlayer code <address>` and independently compare the source to `contracts/trace_sentry.py`; output formatting varies by CLI version.
-
-These have **not been executed in the ChatGPT container**, because its GenLayer CLI and outbound DNS / RPC access are unavailable.
+1. Read `get_stats` and verify the expected administrator, `audit_entries >= 1`, and non-negative counters.
+2. Read `get_audit(0, 1)` and verify the first event is `DEPLOY` with the deployer's address.
+3. Inspect the new deployment transaction in the explorer for GenVM `SUCCESS` and record its current finality status.
+4. Where the CLI supports source retrieval, compare the retrieved source to `contracts/trace_sentry.py`.
 
 ## Stateful write-method tests — perform in hosted Studio using disposable test wallets
 
@@ -39,7 +27,7 @@ These have **not been executed in the ChatGPT container**, because its GenLayer 
 | LIVE-06 | viewer | `get_lot_risk("pilot-root-01")` | severity 0 before a real incident | PENDING |
 | LIVE-07 | unapproved wallet | try to `register_lot` | rejected with authorization error | PENDING |
 | LIVE-08 | supplier | `submit_case(...)` with a **real publicly accessible HTTPS evidence source** | accepted; pending case, `get_case` has ID | PENDING |
-| LIVE-09 | any caller | `assess_case("case-0001")` (or ID returned above) | validator consensus, GenVM `SUCCESS`, outcome validated or explicit rejection | PENDING |
+| LIVE-09 | any caller | `assess_case("case-0001")` (or ID returned above) | On acceptance, check the exact stored severity in `get_case` and the audit. On rejection, verify the case is still pending and no propagation job was created. | PENDING |
 | LIVE-10 | any caller | if `ACTIVE`, call `process_case(case_id, 1..32)` repeatedly | `pending_jobs` decreases; descendants flagged and queue ends `DONE` | PENDING |
 | LIVE-11 | supplier or approved reporter | if `ACTIVE`, submit verifiable rebuttal with `challenge_case` | accepted; challenge state visible | PENDING |
 | LIVE-12 | any caller | `resolve_challenge(appeal_id)` | accepted consensus / explicit error; `get_challenge()` shows action | PENDING |
@@ -52,7 +40,7 @@ These have **not been executed in the ChatGPT container**, because its GenLayer 
 genlayer network set studionet
 genlayer network info
 
-ADDR=0x1C4C17d9A11531D7c27a3B65B24732A61E789D38
+ADDR='YOUR_V1_2_CONTRACT_ADDRESS'
 genlayer call "$ADDR" get_stats --rpc https://studio.genlayer.com/api
 genlayer call "$ADDR" get_audit --rpc https://studio.genlayer.com/api --args 0 1
 ```
@@ -61,7 +49,7 @@ genlayer call "$ADDR" get_audit --rpc https://studio.genlayer.com/api --args 0 1
 
 ```bash
 # Select / unlock the appropriate disposable wallet using the Studio UI or CLI.
-ADDR=0x1C4C17d9A11531D7c27a3B65B24732A61E789D38
+ADDR='YOUR_V1_2_CONTRACT_ADDRESS'
 # In supplier wallet:
 genlayer write "$ADDR" enroll --args "Sample Demo Supplier" "Responsible for independently verified lot provenance"
 # Switch to deployer/admin wallet; insert the actual supplier PUBLIC address:

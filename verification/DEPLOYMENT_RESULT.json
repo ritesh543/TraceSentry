@@ -1,0 +1,30 @@
+{
+  "project": "TraceSentry",
+  "release": "v1.1-studio-deployed-package",
+  "network": "studionet",
+  "chain_id": 61999,
+  "rpc_url": "https://studio.genlayer.com/api",
+  "contract_address": "0x1C4C17d9A11531D7c27a3B65B24732A61E789D38",
+  "deployer_address": "0xc1579Ef67Ca7679645f3ACCD7f6CdB3819D60412",
+  "deployment_transaction_hash": "0x79b3144c72cfe26be5910307c31648ded8a365aba7e3b7ea15573c221a6ae003",
+  "explorer_url": "https://explorer-studio.genlayer.com/tx/0x79b3144c72cfe26be5910307c31648ded8a365aba7e3b7ea15573c221a6ae003",
+  "observed_at": "2026-11-18T12:05:00+05:30",
+  "observed_transaction_status": "ACCEPTED",
+  "observed_consensus_result": "Accepted",
+  "observed_genvm_execution_result": "SUCCESS",
+  "observed_result_code": "Return",
+  "observed_genvm_stderr": "",
+  "observed_initial_validators": 5,
+  "finalization_independently_confirmed": false,
+  "contract_reads_independently_confirmed": false,
+  "write_method_execution_independently_confirmed": false,
+  "deployed_source_exact_bytes_independently_confirmed": false,
+  "included_v1_1_contract_sha256": "ecb6407eed8ac0f2a24e08f49d0e52d399e830d479a94a5f1e1d6220e7a2d2ea",
+  "evidence": "Screenshots supplied by the user in chat. File is a transcription of the pictured explorer details, not an independent RPC attestation.",
+  "caveat": "Successfully accepted deployment execution is visible; full contract workflow and FINALIZED status require separate network checks. Package source matches the previous v1.1 ZIP byte-for-byte, but actual uploaded on-chain bytes were not independently fetched.",
+  "evidence_screenshots": [
+    "verification/evidence/01_studio_accepted.png",
+    "verification/evidence/02_studio_consensus_accepted.png",
+    "verification/evidence/03_genvm_success.png"
+  ]
+}

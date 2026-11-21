@@ -9,4 +9,3 @@ htmlcov/
 !*.example
 node_modules/
 dist/
-verification/DEPLOYMENT_RESULT.json

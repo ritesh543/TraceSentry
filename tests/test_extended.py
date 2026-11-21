@@ -1,25 +1,12 @@
-"""Additional adversarial, invariant and state-machine tests against the exact v1.1
-source used for the user-supplied Studio deployment. Runs OFF-CHAIN with a mock SDK.
-No test below implies that an on-chain method was exercised.
-"""
+"""Adversarial, invariant and state-machine tests using a mock GenLayer SDK."""
 import hashlib
 import json
 import random
-from pathlib import Path
 
 import pytest
 
-from conftest import ADMIN, ALICE, BOB, CAROL, MALLORY, SHA, ANCHOR, REBUTTAL_ANCHOR
+from conftest import ADMIN, ALICE, BOB, CAROL, MALLORY, SHA, SOURCE, ANCHOR, REBUTTAL, REBUTTAL_ANCHOR
 from test_contract import rejects
-
-# Intentionally pin the *previously deployed* source, preventing any late code
-# modifications from being misrepresented as the artifact at this address.
-DEPLOYED_SOURCE_SHA256 = 'ecb6407eed8ac0f2a24e08f49d0e52d399e830d479a94a5f1e1d6220e7a2d2ea'
-
-
-def test_deployed_source_has_not_been_modified():
-    path = Path(__file__).resolve().parents[1] / 'contracts' / 'trace_sentry.py'
-    assert hashlib.sha256(path.read_bytes()).hexdigest() == DEPLOYED_SOURCE_SHA256
 
 
 @pytest.mark.parametrize('batch', [1, 2, 3, 4, 7, 31, 32])
@@ -192,6 +179,8 @@ def test_upheld_appeal_retains_original_warning_and_can_not_reresolve(ready):
      'rationale': 'Unknown decision label must be rejected.'},
     {'decision': 'SUBSTANTIATED', 'severity': 2, 'anchor': 'invented evidence quote',
      'rationale': 'Ungrounded source quotation must be rejected.'},
+    {'decision': 'INSUFFICIENT', 'severity': 0, 'anchor': 'invented evidence quote',
+     'rationale': 'Even an optional quotation must be grounded.'},
     {'decision': 'SUBSTANTIATED', 'severity': 2, 'anchor': ANCHOR,
      'rationale': 'short'},
     {'decision': 'SUBSTANTIATED', 'severity': 2, 'anchor': 'x' * 181,
@@ -223,15 +212,134 @@ def test_non_deterministic_input_failure_is_not_silent(case, ready):
     assert ready.contract.get_case(cid)['status'] == 'PENDING'
 
 
-def test_source_safety_boundary_allows_adjacent_critical_levels(ready):
+def _assessment(severity, **overrides):
+    payload = {
+        'decision': 'SUBSTANTIATED' if severity else 'INSUFFICIENT',
+        'severity': severity,
+        'anchor': ANCHOR if severity else '',
+        'rationale': 'The source was reviewed for product safety evidence.',
+    }
+    return payload | overrides
+
+
+@pytest.mark.parametrize('leader_level,validator_level', [
+    (leader, validator)
+    for leader in range(4)
+    for validator in range(4)
+    if leader != validator
+])
+def test_severity_disagreement_leaves_case_and_lot_risk_unmodified(leader_level, validator_level, ready):
+    ready.lot('downstream', ['lot-a'])
     cid = ready.submit()
-    a = {'decision': 'SUBSTANTIATED', 'severity': 2, 'anchor': ANCHOR,
-         'rationale': 'A credible safety hazard justifies product recall.'}
-    b = {'decision': 'SUBSTANTIATED', 'severity': 3, 'anchor': ANCHOR,
-         'rationale': 'A serious safety hazard requires immediate action.'}
-    ready.engine.responses = [a, b]
+    original = ready.contract.get_case(cid)
+    stats = ready.contract.get_stats()
+    ready.engine.responses = [_assessment(leader_level), _assessment(validator_level)]
+
+    rejects(ready, 'consensus rejected', ready.assess, cid)
+
+    assert ready.engine.prompt_calls == 2
+    assert ready.contract.get_case(cid) == original
+    assert ready.contract.get_stats() == stats
+    assert not ready.contract.case_seen
+    for lot_id in ('lot-a', 'downstream'):
+        assert ready.contract.get_lot_risk(lot_id) == {
+            'severity': 0, 'classification': 'CLEAR', 'case_ids': [],
+        }
+
+
+@pytest.mark.parametrize('level,classification', [
+    (0, 'CLEAR'), (1, 'WATCH'), (2, 'RECALL'), (3, 'CRITICAL'),
+])
+def test_exact_severity_consensus_controls_origin_and_downstream_risk(level, classification, ready):
+    ready.lot('downstream', ['lot-a'])
+    cid = ready.submit()
+    ready.engine.responses = [_assessment(level), _assessment(
+        level, rationale='Independent review reached the same classification.'
+    )]
+    ready.assess(cid).drain(cid, size=1)
+
+    case = ready.contract.get_case(cid)
+    assert case['severity'] == level
+    assert case['status'] == ('ACTIVE' if level else 'DISMISSED')
+    assert case['mode'] == 'DONE'
+    for lot_id in ('lot-a', 'downstream'):
+        assert ready.contract.get_lot_risk(lot_id) == {
+            'severity': level, 'classification': classification, 'case_ids': [cid] if level else [],
+        }
+
+
+def test_leader_quote_must_appear_in_the_snapshot_used_by_the_validator(ready, monkeypatch):
+    cid = ready.submit()
+    new_anchor = 'showed evidence of compromised packaging'
+    revised = SOURCE.replace(ANCHOR, new_anchor)
+    snapshots = iter([SOURCE, revised, SOURCE])
+    monkeypatch.setattr(ready.gl.nondet.web, 'render', lambda url, mode: next(snapshots))
+    ready.engine.responses = [_assessment(2), _assessment(2, anchor=new_anchor)]
+
+    rejects(ready, 'consensus rejected', ready.assess, cid)
+
+    assert ready.contract.get_case(cid)['status'] == 'PENDING'
+
+
+@pytest.mark.parametrize('fields', [
+    {'severity': True},
+    {'rationale': ['explanation'] * 8},
+    {'category': 'TRANSPORT'},
+])
+def test_validator_rejects_malformed_assessment_payload(fields, ready, monkeypatch):
+    cid = ready.submit()
+    ready.engine.responses = [_assessment(1), _assessment(1)]
+
+    def mock_consensus(leader, validator):
+        assert validator(ready.gl.vm.Return(leader() | fields)) is False
+        raise ready.UserError('validator consensus rejected the leader')
+
+    monkeypatch.setattr(ready.gl.vm, 'run_nondet_unsafe', mock_consensus)
+    rejects(ready, 'consensus rejected', ready.assess, cid)
+    assert ready.contract.get_case(cid)['status'] == 'PENDING'
+
+
+@pytest.mark.parametrize('leader_level,validator_level', [(1, 2), (2, 1)])
+def test_appeal_downgrade_requires_exact_new_severity(leader_level, validator_level, ready):
+    cid = ready.submit()
     ready.assess(cid).drain(cid)
-    assert ready.contract.get_lot_risk('lot-a')['severity'] == 2
+    aid = ready.challenge(cid)
+    pending = ready.contract.get_challenge(aid)
+    stats = ready.contract.get_stats()
+    downgrade = {'action': 'DOWNGRADE', 'anchor': REBUTTAL_ANCHOR,
+                 'rationale': 'The rebuttal supports lowering the safety response.'}
+    ready.engine.responses = [
+        dict(downgrade, severity=leader_level),
+        dict(downgrade, severity=validator_level),
+    ]
+
+    rejects(ready, 'consensus rejected', ready.contract.resolve_challenge, aid)
+
+    assert ready.contract.get_challenge(aid) == pending
+    assert ready.contract.get_stats() == stats
+    assert ready.contract.get_lot_risk('lot-a')['classification'] == 'CRITICAL'
+
+
+def test_appeal_uses_the_challengers_argument_and_fresh_evidence(ready, monkeypatch):
+    cid = ready.submit()
+    ready.assess(cid).drain(cid)
+    aid = ready.challenge(cid)
+    prompts = []
+    fetches_before = ready.engine.web_calls
+
+    def capture(prompt):
+        prompts.append(json.loads(prompt.split('\nInput JSON:\n', 1)[1]))
+        return ready.engine.prompt(prompt)
+
+    monkeypatch.setattr(ready.gl.nondet, 'exec_prompt', capture)
+    ready.contract.resolve_challenge(aid)
+
+    assert len(prompts) == 2
+    for evidence in prompts:
+        assert evidence['argument'] == ready.contract.get_challenge(aid)['argument']
+        assert evidence['original_evidence'] == SOURCE
+        assert evidence['rebuttal_evidence'] == REBUTTAL
+    assert ready.engine.web_calls - fetches_before == 4
 
 
 def test_appeal_invalid_downgrade_when_prior_watch_severity(ready):

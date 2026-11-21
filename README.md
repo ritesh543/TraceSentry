@@ -4,9 +4,9 @@
 
 [![Python](https://img.shields.io/badge/Python-3.12%2B-2563eb)](https://www.python.org/) [![GenLayer](https://img.shields.io/badge/GenLayer-Intelligent%20Contract-7c3aed)](https://docs.genlayer.com/) [![License](https://img.shields.io/badge/License-MIT-22c55e)](LICENSE)
 
-TraceSentry is a standalone GenLayer Intelligent Contract for collaborative **product-lot provenance, incident verification, downstream safety warnings, and evidence-based appeals**. It is intentionally **not** a grant-review, milestone, or generic LLM chatbot contract.
+TraceSentry is a standalone GenLayer Intelligent Contract for collaborative **product-lot provenance, incident verification, downstream safety warnings, and evidence-based appeals**.
 
-> **v1.1 deployment hotfix (2026-11-18):** The **original** v1.0 deployment attempt finalized with **GenVM `Contract Error`** because of untyped `TreeMap()` assignment in `__init__`. This revision removes all explicit generic storage initialization and uses GenVM's typed zero initialization. **Studio screenshots show v1.1 accepted with `GenVM Execution: SUCCESS`. The earlier v1.0 failure is historic; separate contract-method write/read smoke tests have not been verified on-chain.** See [`verification/FAILED_STUDIO_TRANSACTION.md`](verification/FAILED_STUDIO_TRANSACTION.md), `verification/TEST_REPORT.md`, and `docs/SECURITY.md`.
+> **v1.2 consensus fix (21 November 2026).** Each validator independently fetches and assesses the evidence. `assess_case` requires agreement on the exact severity that determines lot risk. A 2 (`RECALL`) versus 3 (`CRITICAL`) disagreement rejects the assessment before any case update or propagation. See [the consensus rules](docs/ARCHITECTURE.md#source-adjudication-and-consensus) and [test results](verification/TEST_REPORT.md).
 
 ## The problem
 
@@ -27,7 +27,7 @@ A safety notice for one raw-material shipment can affect hundreds of manufacture
          |                         │ Validators: fresh web  │
          |                         │ + independent LLM      │
          |                         └────────────┬───────────┘
-         |                                  Accepted decision
+         |                                  Agreed severity
          |                               ┌─────────┴────────┐
          |                            severity 0         severity 1..3
          |                            DISMISSED              ACTIVE
@@ -57,7 +57,7 @@ A safety notice for one raw-material shipment can affect hundreds of manufacture
 | **Provenance DAG** | Immutable directed acyclic dependencies, parent validation, bounded fan-in/fan-out |
 | **Incident intake** | Source URL, declared SHA-256 metadata, category, allegation, sender permissions |
 | **AI evidence review** | Live HTTPS source fetch, source-grounded exact quote, severity classification |
-| **Independent consensus** | Leader and validator independently rerun web/LLM work; critical boundary matches exactly |
+| **Independent consensus** | Every validator fetches and assesses evidence independently and checks the exact decision and severity |
 | **Multi-case propagation** | Resumable de-duplicated BFS; processing cap of 32 lots per transaction |
 | **Conservative safety** | Risk stays flagged during retraction until each lot is cleared |
 | **Challenge court** | Evidence-based appeals: uphold, downgrade, or overturn with independently evaluated result |
@@ -92,7 +92,7 @@ TraceSentry/
 │   ├── verify_bundle.py   # Manifest verifier
 │   └── smoke_deployed_readonly.sh # Network-dependent, read-only live checks
 ├── verification/
-│   ├── DEPLOYMENT_RESULT.json # User-supplied Studio execution evidence
+│   ├── DEPLOYMENT_RESULT.json # Historical v1.1 Studio evidence
 │   ├── TEST_REPORT.md      # Genuine measured results
 │   ├── FAILED_STUDIO_TRANSACTION.md  # Historical failed attempt + fix
 │   └── MANIFEST.sha256     # Package file integrity manifest
@@ -111,9 +111,10 @@ TraceSentry/
 python3 -m pip install -r requirements.txt
 python3 -m pytest tests/ -v
 python3 -m py_compile contracts/trace_sentry.py
+python3 scripts/verify_bundle.py
 ```
 
-These are real Python contract-behavior tests, including an explicit regression test for the previously failing constructor allocation. GenLayer is still intentionally mocked, so they **do not prove actual GenVM compatibility or network consensus**. On a network-enabled development machine, run:
+The host tests import the deployable source with mocked GenLayer primitives and exercise all 16 leader/validator severity pairs. GenVM lint and SDK schema validation can be run with the GenLayer tooling.
 
 ```bash
 python3 -m pip install -r requirements-genlayer.txt
@@ -121,25 +122,9 @@ genvm-lint check contracts/trace_sentry.py
 # Then test in Studio or GLSim and inspect real transaction traces.
 ```
 
-## Deployed StudioNet contract (18 November 2026)
+## StudioNet deployment
 
-**Address:** `0x1C4C17d9A11531D7c27a3B65B24732A61E789D38`  
-**Deploy transaction:** [`0x79b3144c…a6ae003`](https://explorer-studio.genlayer.com/tx/0x79b3144c72cfe26be5910307c31648ded8a365aba7e3b7ea15573c221a6ae003)  
-**Deployer:** `0xc1579Ef67Ca7679645f3ACCD7f6CdB3819D60412`  
-**Observed Studio result:** `ACCEPTED`, consensus `Accepted`, GenVM `SUCCESS`, result code `Return`, stderr empty. The screenshots do **not** establish finalization or successful later method calls.
-
-**Source integrity:** `contracts/trace_sentry.py` is byte-for-byte unchanged from the previously supplied v1.1 fix archive; SHA-256: `ecb6407eed8ac0f2a24e08f49d0e52d399e830d479a94a5f1e1d6220e7a2d2ea`. The actual deployed source has not been independently downloaded to prove a byte-level match.
-
-### Read-only live smoke test (requires network + GenLayer CLI)
-
-```bash
-npm install -g genlayer
-./scripts/smoke_deployed_readonly.sh
-```
-
-For full write-method testing, see [`verification/LIVE_TEST_PLAN.md`](verification/LIVE_TEST_PLAN.md). Final deployment metadata is in [`deployment_info.json`](deployment_info.json). Automated host mock tests cannot replace real GenVM/validator tests.
-
-## Deploy to GenLayer Studionet (only if redeploying another instance)
+v1.2 is packaged for a fresh stable StudioNet deployment (chain ID 61999). Its source hash and deployment status are in [`deployment_info.json`](deployment_info.json).
 
 ```bash
 npm install -g genlayer
@@ -150,11 +135,15 @@ genlayer network info
 genlayer deploy --contract contracts/trace_sentry.py
 ```
 
-**Never import a real/private-value wallet into a throwaway development machine.** Save the final transaction hash, contract address, network and execution/finality status only after verifying the receipt. See **[full deployment steps](docs/DEPLOYMENT.md)**.
+Save the resulting address and transaction hash after verifying the receipt. The read-only smoke script accepts that address as its argument. See [the deployment guide](docs/DEPLOYMENT.md) and [live test plan](verification/LIVE_TEST_PLAN.md).
 
 ### Alternative: Studio UI
 
 Open https://studio.genlayer.com → **Contracts** → **Add From File** → upload `contracts/trace_sentry.py` → **Run and Debug** → **Deploy** (no constructor arguments). Review logs and then use `get_stats()` / `enroll()` for smoke testing.
+
+### Historical v1.1 deployment
+
+The 18 November 2026 Studio screenshots report `ACCEPTED` and GenVM `SUCCESS` for the v1.1 constructor at `0x1C4C17d9A11531D7c27a3B65B24732A61E789D38`. Finality and subsequent method calls were unverified. The v1.1 constructor fixed the typed storage initialization failure from v1.0. [Historical deployment record](verification/DEPLOYMENT_RESULT.json) · [v1.0 diagnosis](verification/FAILED_STUDIO_TRANSACTION.md)
 
 ## Contract usage overview
 
@@ -178,7 +167,6 @@ See the complete [method specification](docs/INTERFACE.md) and [walkthrough](exa
 * The URL check is a first-level input filter, **not complete SSRF / DNS rebinding / redirect protection**.
 * Case propagation is **not automatic** — somebody must process its pending batches. A globally blocked DAG write while jobs remain prevents late edges from escaping propagation.
 * The protocol has a trusted administrator for role approvals, pause, and emergency retraction. It is **not fully decentralized governance**.
-* Version 1.0 produced a **failed** (but finalized) Studio deployment; v1.1 fixes the observed typed-storage mismatch. Further GenVM/runtime issues may still exist in untested methods. The v1.1 constructor is proven to execute on Studio by the supplied screenshots; method workflow is not yet proven live. See `verification/DEPLOYMENT_RESULT.json`.
 
 ## References
 

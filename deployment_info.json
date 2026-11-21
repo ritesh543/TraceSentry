@@ -1,18 +1,17 @@
 {
   "project": "TraceSentry",
-  "version": "1.1",
+  "version": "1.2",
   "network": "studionet",
   "chain_id": 61999,
-  "contract_address": "0x1C4C17d9A11531D7c27a3B65B24732A61E789D38",
-  "deployer_address": "0xc1579Ef67Ca7679645f3ACCD7f6CdB3819D60412",
-  "transaction_hash": "0x79b3144c72cfe26be5910307c31648ded8a365aba7e3b7ea15573c221a6ae003",
-  "explorer_url": "https://explorer-studio.genlayer.com/tx/0x79b3144c72cfe26be5910307c31648ded8a365aba7e3b7ea15573c221a6ae003",
-  "observed_status": "ACCEPTED",
-  "observed_execution_result": "SUCCESS",
+  "deployment_status": "NOT_DEPLOYED",
+  "contract_address": null,
+  "deployer_address": null,
+  "transaction_hash": null,
+  "explorer_url": null,
   "finalized": null,
   "source_file": "contracts/trace_sentry.py",
-  "source_sha256": "ecb6407eed8ac0f2a24e08f49d0e52d399e830d479a94a5f1e1d6220e7a2d2ea",
+  "source_sha256": "eec9cdc4461cf6ac4c6e0c3b1a01e98da646d5312f0143e0051cb64cff8b0f5a",
   "source_matching_chain_independently_verified": false,
   "functional_writes_verified_onchain": false,
-  "verification_document": "verification/DEPLOYMENT_RESULT.json"
+  "historical_v1_1_verification": "verification/DEPLOYMENT_RESULT.json"
 }

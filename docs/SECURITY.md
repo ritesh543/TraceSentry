@@ -2,14 +2,14 @@
 
 ## Current status
 
-Experimental; **not audited, not GenVM-linted, not live-deployed**. Do not use for commercial recall decisions, financial settlement, or legal compliance without independent review.
+Experimental. v1.2 passed host tests and GenVM lint and SDK schema validation. Live StudioNet verification and an independent security audit are pending. See [the test report](../verification/TEST_REPORT.md).
 
 ## Covered by the tests
 
 1. Sender-based authorization and revocation; two-step administrator handoff.
 2. Duplicate lot rejection, parent validation, self-cycle rejection, graph degree limits.
 3. Input length, ID, URL scheme and digest syntax validation.
-4. Independent validator disagreement on safety-critical boundaries.
+4. Rejection of every disagreement between valid severity levels, including `RECALL` and `CRITICAL`, before case, job, or audit writes.
 5. Anchored evidence output, rejection of invented quotations.
 6. Overlap-safe BFS alert propagation and bounded per-tx processing.
 7. Conservative retractions, appeals, overlapping alerts and idempotence guards.
@@ -28,7 +28,7 @@ Experimental; **not audited, not GenVM-linted, not live-deployed**. Do not use f
 - **Appeals:** One challenge per case. After that, only admin can issue emergency retraction; governance remains a point of trust.
 - **No challenge window:** Once `ACTIVE`, propagation may proceed before the originating party challenges. Design intentionally prioritizes containment; choose a legal escalation policy off-chain.
 - **Nondeterminism:** Different source versions or LLM differences can cause failed consensus. No promise of finality or acceptance is made without live Studio tests.
-- **GenVM API / pinned runtime:** The Depends hash and Python methods were selected from official docs, but the v1.1 constructor was observed by the user to execute successfully on Studio, but the linter and other live methods remain unverified in this environment.
+- **GenVM runtime:** SDK schema validation checks the pinned runtime's contract interface. The live test plan exercises actual transaction execution and network consensus. [Live test plan](../verification/LIVE_TEST_PLAN.md)
 - **Hash integrity:** SHA-256 audit chaining detects mutation against trusted published root but is not a signature and does not prove source or actor honesty.
 
 ## Before real deployment

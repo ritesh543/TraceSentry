@@ -25,11 +25,20 @@ Each lot is a JSON record under `TreeMap[str,str]` and is immutable after regist
 
 ## Source adjudication and consensus
 
-A case leader fetches public HTTPS evidence using `gl.nondet.web.render(url, mode="text")`, truncates to 12,000 characters and calls `gl.nondet.exec_prompt()` for a structured `{decision,severity,anchor,rationale}` assessment. The **validator independently refetches the source and reruns the prompt**, rather than simply checking leader JSON syntax. It requires the same substantiation decision and the same **watch vs recall** safety boundary. At most a one-level score difference is tolerated within the same boundary. It separately verifies the leader's verbatim anchor against freshly retrieved source material.
+A case leader fetches public HTTPS evidence with `gl.nondet.web.render(url, mode="text")`, limits it to 12,000 characters, and requests a structured `{decision,severity,anchor,rationale}` assessment. Each validator fetches its own copy, verifies the leader's quote against that copy, and independently assesses the same copy. It compares the substantiation decision and the exact integer severity. Explanations and quotes can vary in independently generated responses.
 
-An appeal performs **new independent web + LLM evaluation** of original and rebuttal documents. Its action and severity must match **exactly** across leader and validator. Both are evaluated against quoted source text.
+Consensus binds the value written to the case and used for the maximum severity returned by `get_lot_risk`. A mismatch rejects the assessment before the contract stores a case outcome, starts a job, or appends the assessment audit entry.
 
-Source documents and quoted passages are **untrusted data** in both prompts. Adversarial pages can still manipulate LLMs: independent validation reduces but does not eliminate prompt injection or shared-model failures. No method trusts an LLM's output without checks on the result's stable fields.
+| Severity | Lot risk at that level | Evidence criterion |
+| --- | --- | --- |
+| 0 | `CLEAR` | The allegation lacks substantiation |
+| 1 | `WATCH` | A credible concern warrants monitoring |
+| 2 | `RECALL` | Evidence warrants product withdrawal |
+| 3 | `CRITICAL` | An immediate serious hazard requires urgent containment |
+
+The appeal leader and validators fetch both sources independently and assess the challenger's recorded argument against them. Each validator verifies the proposed quote on the evidence it assessed, then requires exact agreement on the action and severity. The case transitions only when the outcome is within the allowed severity range for its prior level.
+
+The prompts treat allegations, appeal arguments, and source documents as untrusted input. Independent review and quote checks can reduce prompt-injection risk. Shared-model failures and misleading evidence remain possible.
 
 ## Bounded fault containment
 

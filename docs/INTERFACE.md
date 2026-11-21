@@ -18,10 +18,10 @@ All writes are GenLayer transactions. Public views are read-only. `parents_json`
 |---|---|---|---|
 | `register_lot` | `lot_id, label, product_code, parents_json, manifest_hash` (all strings) | approved supplier | creates immutable lot with parent DAG edges |
 | `submit_case` | `lot_id, category, allegation, evidence_url, evidence_sha256` (strings) | lot origin custodian, reporter, or admin | returns case id like `case-0001` |
-| `assess_case` | `case_id: str` | any while unpaused | independent leader / validator evidence assessment |
+| `assess_case` | `case_id: str` | any while unpaused | independent evidence assessment with exact decision and severity agreement |
 | `process_case` | `case_id: str, batch: u32` | any while unpaused | BFS propagation / case-specific retraction in chunks ≤32 |
 | `challenge_case` | `case_id, rebuttal_url, rebuttal_sha256, argument` (strings) | origin custodian, reporter, or admin | returns appeal id like `appeal-0001` |
-| `resolve_challenge` | `challenge_id: str` | any while unpaused | independent assessment of original and rebuttal |
+| `resolve_challenge` | `challenge_id: str` | any while unpaused | independent assessment of both sources and the recorded argument, with exact action and severity agreement |
 | `emergency_retract` | `case_id: str, reason: str` | admin | starts conservative clearing of finished active incident |
 
 `category` must be one of `CONTAMINATION`, `COUNTERFEIT`, `TRANSPORT`, `COMPLIANCE`, `OTHER`. `evidence_url` must be a public HTTPS URL, with additional syntactic restrictions. SHA-256 should be **64 hex characters**. Manifest hash accepts 16–128 hex characters.

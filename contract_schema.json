@@ -102,19 +102,18 @@
     "audit_view_page": 32
   },
   "consensus": {
-    "case_assessment": "independent source fetch + independent LLM; decision & recall boundary exact; severity difference <= 1 within boundary; grounded quote",
-    "appeal": "independent fetch both documents + independent LLM; action and severity exact; grounded quote"
+    "case_assessment": "Independent evidence fetch and assessment with exact decision and severity. The proposed quote is checked against the same evidence used for independent assessment.",
+    "appeal": "Independent assessment of both sources and the recorded argument with exact action and severity. The proposed quote is checked against those sources."
   },
-  "deployed": true,
+  "deployed": false,
   "security_audited": false,
   "deployment": {
     "network": "studionet",
     "chain_id": 61999,
-    "contract_address": "0x1C4C17d9A11531D7c27a3B65B24732A61E789D38",
-    "transaction_hash": "0x79b3144c72cfe26be5910307c31648ded8a365aba7e3b7ea15573c221a6ae003",
-    "genvm_execution": "SUCCESS",
-    "consensus": "ACCEPTED",
-    "finalization": "not_independently_confirmed",
-    "included_source_sha256": "ecb6407eed8ac0f2a24e08f49d0e52d399e830d479a94a5f1e1d6220e7a2d2ea"
-  }
+    "status": "NOT_DEPLOYED",
+    "contract_address": null,
+    "transaction_hash": null,
+    "included_source_sha256": "eec9cdc4461cf6ac4c6e0c3b1a01e98da646d5312f0143e0051cb64cff8b0f5a"
+  },
+  "release_version": "1.2"
 }

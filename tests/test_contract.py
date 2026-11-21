@@ -111,7 +111,7 @@ def test_assessment_independent_validator(ready):
     cid = ready.submit()
     ready.assess(cid)
     assert ready.engine.prompt_calls == 2
-    assert ready.engine.web_calls >= 3
+    assert ready.engine.web_calls == 2
     assert ready.contract.get_case(cid)['severity'] == 3
     assert ready.contract.get_case(cid)['mode'] == 'SPREAD'
 
@@ -393,7 +393,7 @@ def test_role_management_no_collateral_access(ready):
 def test_validator_evidence_web_rescanned(ready):
     cid = ready.submit()
     ready.assess(cid)
-    assert ready.engine.web_calls >= 3
+    assert ready.engine.web_calls == 2
 
 
 def test_duplicate_assessment_rejected(ready):

@@ -1,20 +1,10 @@
-# Deployment guide: GenLayer StudioNet
+# GenLayer StudioNet deployment guide
 
-## Existing successful Studio deployment (v1.1)
+## TraceSentry v1.2
 
-The user provided Studio screenshots showing `ACCEPTED`, consensus `Accepted`, GenVM `SUCCESS`, result `Return`, and no stderr on the corrected v1.1 deployment. This **does not** prove `FINALIZED` or runtime behavior of other methods.
+Deploy `contracts/trace_sentry.py` on stable StudioNet (chain ID 61999) for the exact severity consensus fix. The [release metadata](../deployment_info.json) records the v1.2 source hash and deployment status.
 
-- Contract: `0x1C4C17d9A11531D7c27a3B65B24732A61E789D38`
-- Transaction: `0x79b3144c72cfe26be5910307c31648ded8a365aba7e3b7ea15573c221a6ae003`
-- Network: StudioNet (`61999`)
-- Evidence: `verification/DEPLOYMENT_RESULT.json`
-
-No new deployment is required to run the read-only checks. Run `./scripts/smoke_deployed_readonly.sh` on a machine with GenLayer CLI and internet access.
-
-
-## Important: earlier deployment failed in GenVM
-
-The original contract version's transaction `0xf83d3faba96fcaef72b70d65763232e705411b23b86b29dc746f41b350850c36` was **FINALIZED but did not deploy successfully**: `GenVM Execution Result: ERROR`, `Contract Error`, `exit_code 1` due to `TreeMap()` type-descriptor mismatch. This ZIP contains the **corrected constructor**. A corrected v1.1 deployment has already been accepted; use the existing address above. Do not redeploy unless intentionally creating a separate contract instance. Never use the old address as deployment proof. See `verification/FAILED_STUDIO_TRANSACTION.md`.
+The v1.1 Studio receipt and the diagnosis of the earlier constructor issue are available for reference. [v1.1 receipt evidence](../verification/DEPLOYMENT_RESULT.json) · [v1.0 constructor diagnosis](../verification/FAILED_STUDIO_TRANSACTION.md)
 
 ## Prerequisites
 
@@ -27,16 +17,17 @@ The original contract version's transaction `0xf83d3faba96fcaef72b70d65763232e70
 ## 1. Inspect code, tests and limitations
 
 ```bash
-unzip TraceSentry_GenLayer.zip
+unzip TraceSentry_v1.2_ConsensusFix.zip
 cd TraceSentry
 python3 -m pip install -r requirements.txt
 python3 -m pytest tests/ -v
 python3 -m py_compile contracts/trace_sentry.py
+python3 scripts/verify_bundle.py
 python3 -m pip install -r requirements-genlayer.txt
 genvm-lint check contracts/trace_sentry.py
 ```
 
-Run real GenLayer direct tests/integration tests before using non-test stakes. The bundled host-side tests use a **handwritten mock runner**, not the GenVM.
+The bundled host tests run with mocked GenLayer primitives. The SDK check loads the pinned contract interface. For on-chain method execution, use the live test plan below.
 
 ## 2. Install and select stable Studionet
 
@@ -80,6 +71,12 @@ See official instructions: https://docs.genlayer.com/developers/intelligent-cont
 
 From deployer wallet, confirm `get_stats()` reports `lots=0`, `cases=0`, `pending_jobs=0`, `audit_entries=1` and the deployer as admin.
 
+The CLI helper takes the new contract address and performs read-only calls.
+
+```bash
+./scripts/smoke_deployed_readonly.sh "$ADDR"
+```
+
 Then:
 
 1. Switch to supplier wallet, call `enroll("Demo Supply Co", "Test batch provenance operator")`.
@@ -90,11 +87,11 @@ Then:
 6. If active, call `process_case("case-0001", 32)` until the stored mode is `DONE` and inspect descendant risk.
 7. For live claims, test the appeal process with independently verifiable rebuttal evidence.
 
-Capture real call outcomes, transactions and finality. A network explorer record is stronger evidence than a local test report.
+Capture the call outcomes, transaction receipts, and finality status. [Live test plan](../verification/LIVE_TEST_PLAN.md)
 
 ## 7. Publish proof
 
-For **future/new deployments**, record fresh values rather than overwriting the existing v1.1 evidence:
+Record the v1.2 receipt and its source hash in `deployment_info.json` and the deployment section of `contract_schema.json` after verifying the new transaction.
 
 ```json
 {
